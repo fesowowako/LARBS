@@ -110,7 +110,7 @@ chaoticaur() {
   } >>/etc/pacman.conf
   # Update package database and install the AUR helper
   whiptail --title "Installing AUR Helper from Chaotic AUR" --infobox "Installing $aurhelper binary from Chaotic AUR..." 8 60
-  installpkg $aurhelper
+  pacman --noconfirm --needed -Sy $aurhelper >/dev/null 2>&1
 }
 
 maininstall() {
