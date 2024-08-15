@@ -36,6 +36,7 @@
 ,wget,"Network utility to retrieve files from the Web."
 ,xclip,"Command line interface to the X11 clipboard."
 ,xdotool,"Command-line X11 automation tool."
+,github-cli,"The GitHub CLI."
 ,fzf,"Command-line fuzzy finder."
 ,bat,"Cat clone with syntax highlighting and git integration."
 ,zoxide,"A smarter cd command for your terminal."
