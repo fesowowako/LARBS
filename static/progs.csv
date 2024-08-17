@@ -42,7 +42,7 @@
 ,zoxide,"A smarter cd command for your terminal."
 ,eza,"A modern replacement for ls."
 ,htop,"Interactive process viewer."
-,alacritty,"A cross-platform, GPU-accelerated terminal emulator."
+,wezterm,"A GPU-accelerated cross-platform terminal emulator and multiplexer."
 ,wmctrl,"Control your EWMH compliant window manager from command line."
 ,mold,"A Modern Linker."
 ,flameshot,"Powerful yet simple to use screenshot software."
