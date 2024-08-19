@@ -245,9 +245,9 @@ adduserandpass || error "Error adding username and/or password."
 
 # Allow user to run sudo without password. Since AUR programs must be installed
 # in a fakeroot environment, this is required for all builds with AUR
-trap 'rm -f /etc/sudoers.d/larbs-temp' HUP INT QUIT TERM PWR EXIT
+trap 'rm -f /etc/sudoers.d/temp' HUP INT QUIT TERM PWR EXIT
 echo "%wheel ALL=(ALL) NOPASSWD: ALL
-Defaults:%wheel,root runcwd=*" >/etc/sudoers.d/larbs-temp
+Defaults:%wheel,root runcwd=*" >/etc/sudoers.d/temp
 
 # Enable parallel downloads, uncomment VerbosePkgLists and Color, and add ILoveCandy for pacman
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;s/^#(VerbosePkgLists)$/\1/;/^#Color$/s/#//" /etc/pacman.conf
@@ -303,8 +303,10 @@ dbus-uuidgen >/var/lib/dbus/machine-id
         MatchIsTouchpad "on"
         MatchDevicePath "/dev/input/event*"
         Driver "libinput"
-	# Enable left mouse button by tapping
-	Option "Tapping" "on"
+        # Enable left mouse button by tapping
+        Option "Tapping" "on"
+        # Add Natural Scrolling
+        Option "NaturalScrolling" "true"
 EndSection' >/etc/X11/xorg.conf.d/40-libinput.conf
 
 # Allow wheel users to sudo with password and allow several system commands
@@ -319,7 +321,7 @@ echo "kernel.dmesg_restrict = 0" >/etc/sysctl.d/dmesg.conf
 echo 'ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' >/etc/zsh/zshenv
 
 # Cleanup
-rm -f /etc/sudoers.d/larbs-temp
+rm -f /etc/sudoers.d/temp
 
 # Last message! Install complete!
 finalize
