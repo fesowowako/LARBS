@@ -251,7 +251,7 @@ Defaults:%wheel,root runcwd=*" >/etc/sudoers.d/temp
 
 # Enable parallel downloads, uncomment VerbosePkgLists and Color, and add ILoveCandy for pacman
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;s/^#(VerbosePkgLists)$/\1/;/^#Color$/s/#//" /etc/pacman.conf
-grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/^VerbosePkgLists/a ILoveCandy" /etc/pacman.conf
+grep -q "ILoveCandy" /etc/pacman.conf || sed -i "/^ParallelDownloads/a ILoveCandy" /etc/pacman.conf
 
 # Add custom build settings
 echo 'CFLAGS="-march=native -mtune=native -O3 -pipe -fno-plt -fexceptions -Wp,-D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security -fstack-clash-protection"
