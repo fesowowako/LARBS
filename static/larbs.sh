@@ -315,6 +315,9 @@ Defaults editor=/usr/bin/nvim' | tee /etc/sudoers.d/sudoersd >/dev/null
 mkdir -p /etc/sysctl.d
 echo "kernel.dmesg_restrict = 0" >/etc/sysctl.d/dmesg.conf
 
+# Zsh base dir
+echo 'ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' >/etc/zsh/zshenv
+
 # Cleanup
 rm -f /etc/sudoers.d/larbs-temp
 
