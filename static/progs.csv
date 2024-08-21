@@ -39,6 +39,8 @@
 ,xclip,"Command line interface to the X11 clipboard."
 ,xdotool,"Command-line X11 automation tool."
 ,github-cli,"The GitHub CLI."
+,zathura,"Minimalistic document viewer."
+,zathura-pdf-poppler,"Adds pdf support to zathura by using the poppler engine."
 ,fzf,"Command-line fuzzy finder."
 ,bat,"Cat clone with syntax highlighting and git integration."
 ,zoxide,"A smarter cd command for your terminal."
