@@ -26,8 +26,6 @@
 ,mpv,"A free, open source, and cross-platform media player."
 ,imlib2,"Image loading and rendering library."
 ,papirus-icon-theme,"Icon theme based on Papirus."
-,wireplumber,"Session / policy manager implementation for PipeWire."
-,pipewire-pulse,"Low-latency audio/video router and processor - PulseAudio replacement."
 ,yajl,"JSON (JavaScript Object Notation) parsing and generation library."
 ,jq,"Command-line JSON processor."
 ,polkit,"Application development toolkit for controlling system-wide privileges."
