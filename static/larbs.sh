@@ -95,22 +95,21 @@ Include = /etc/pacman.d/mirrorlist-arch" >>/etc/pacman.conf
   esac
 }
 
-chaoticaur() {
-  whiptail --title "Chaotic AUR Installation" --infobox "Adding the Chaotic AUR repository to your system..." 8 60
-  # Import Chaotic AUR key
-  pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com >/dev/null 2>&1
-  pacman-key --lsign-key 3056513887B78AEB >/dev/null 2>&1
-  # Install Chaotic AUR keyring and mirrorlist packages
-  yes | pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' >/dev/null 2>&1
-  yes | pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' >/dev/null 2>&1
-  # Add Chaotic AUR repository to pacman configuration if not already present
-  grep -qxF "[chaotic-aur]" /etc/pacman.conf || {
-    echo "[chaotic-aur]"
-    echo "Include = /etc/pacman.d/chaotic-mirrorlist"
-  } >>/etc/pacman.conf
-  # Update package database and install the AUR helper
-  whiptail --title "Installing AUR Helper from Chaotic AUR" --infobox "Installing $aurhelper binary from Chaotic AUR..." 8 60
-  pacman --noconfirm --needed -Sy $aurhelper >/dev/null 2>&1
+manualinstall() {
+  # Installs $1 manually. Used only for AUR helper here.
+  # Should be run after repodir is created and var is set.
+  pacman -Qq "$1" && return 0
+  whiptail --infobox "Installing \"$1\" manually." 7 50
+  sudo -u "$name" mkdir -p "$repodir/$1"
+  sudo -u "$name" git -C "$repodir" clone --depth 1 --single-branch \
+    --no-tags -q "https://aur.archlinux.org/$1.git" "$repodir/$1" ||
+    {
+      cd "$repodir/$1" || return 1
+      sudo -u "$name" git pull --force origin master
+    }
+  cd "$repodir/$1" || exit 1
+  sudo -u "$name" \
+    makepkg --noconfirm -si >/dev/null 2>&1 || return 1
 }
 
 maininstall() {
@@ -226,14 +225,11 @@ preinstallmsg || error "User exited."
 refreshkeys ||
   error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
-for x in curl ca-certificates base-devel git ntp zsh dash; do
+for x in curl ca-certificates base-devel git mold ntp zsh dash; do
   whiptail --title "LARBS Installation" \
     --infobox "Installing \`$x\` which is required to install and configure other programs." 8 70
   installpkg "$x"
 done
-
-# Add Chaotic AUR repository to the system
-chaoticaur || error "Error installing Chaotic AUR."
 
 whiptail --title "LARBS Installation" \
   --infobox "Synchronizing system time to ensure successful and secure installation of software..." 8 70
@@ -263,6 +259,8 @@ OPTIONS=(strip docs !libtool !staticlibs emptydirs zipman purge !debug lto)
 COMPRESSGZ=(pigz -c -f -n)
 COMPRESSBZ2=(pbzip2 -c -f)
 COMPRESSZST=(zstd -c -T0 --auto-threads=logical -)' | tee /etc/makepkg.conf.d/makepkgd.conf >/dev/null
+
+manualinstall $aurhelper || error "Failed to install AUR helper."
 
 # Make sure .*-git AUR packages get updated automatically
 $aurhelper -Y --save --devel
@@ -299,14 +297,12 @@ dbus-uuidgen >/var/lib/dbus/machine-id
 
 # Enable tap to click
 [ ! -f /etc/X11/xorg.conf.d/40-libinput.conf ] && printf 'Section "InputClass"
-        Identifier "libinput touchpad catchall"
-        MatchIsTouchpad "on"
-        MatchDevicePath "/dev/input/event*"
-        Driver "libinput"
-        # Enable left mouse button by tapping
-        Option "Tapping" "on"
-        # Add Natural Scrolling
-        Option "NaturalScrolling" "true"
+    Identifier "libinput touchpad catchall"
+    MatchIsTouchpad "on"
+    MatchDevicePath "/dev/input/event*"
+    Driver "libinput"
+    Option "Tapping" "on"
+    Option "NaturalScrolling" "true"
 EndSection' >/etc/X11/xorg.conf.d/40-libinput.conf
 
 # Allow wheel users to sudo with password and allow several system commands
