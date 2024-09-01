@@ -26,7 +26,7 @@ error() {
 
 welcomemsg() {
   whiptail --title "Welcome!" \
-    --msgbox "Welcome to Luke's Auto-Rice Bootstrapping Script!\\n\\nThis script will automatically install a fully-featured Linux desktop, which I use as my main machine.\\n\\n-Luke" 10 60
+    --msgbox "Welcome to the Auto-Rice Bootstrapping Script!\\n\\nThis script will automatically install a fully-featured Linux desktop." 10 60
 
   whiptail --title "Important Note!" --yes-button "All ready!" \
     --no-button "Return..." \
@@ -68,11 +68,10 @@ adduserandpass() {
   # Adds user `$name` with password $pass1
   whiptail --infobox "Adding user \"$name\"..." 7 50
   useradd -m -g wheel -s /bin/zsh "$name" >/dev/null 2>&1 ||
-    usermod -a -G wheel "$name" && mkdir -p /home/"$name"
+    usermod -a -G wheel "$name" && mkdir -p /home/"$name" && chown "$name":wheel /home/"$name"
   export repodir="/home/$name/.local/src"
   mkdir -p "$repodir"
-  chown -R "$name":wheel "/home/$name"
-  chmod g+s "/home/$name"
+  chown -R "$name":wheel "$(dirname "$repodir")"
   echo "$name:$pass1" | chpasswd
   unset pass1 pass2
 }
@@ -184,7 +183,7 @@ putgitrepo() {
 
 finalize() {
   whiptail --title "All done!" \
-    --msgbox "Congrats! Provided there were no hidden errors, the script completed successfully and all the programs and configuration files should be in place.\\n\\nTo run the new graphical environment, log out and log back in as your new user, then run the command \"startx\" to start the graphical environment (it will start automatically in tty1).\\n\\n.t Luke" 13 80
+    --msgbox "Congrats! Provided there were no hidden errors, the script completed successfully and all the programs and configuration files should be in place.\\n\\nTo start the new graphical environment, log out and log back in as your new user.\\n\\nEnjoy your setup!" 13 80
 }
 
 ### THE ACTUAL SCRIPT ###
@@ -198,15 +197,6 @@ pacman --noconfirm --needed -Sy libnewt ||
 # Set LC_COLLATE to C and regenerate locales
 grep "LC_COLLATE" /etc/locale.conf >/dev/null 2>&1 || echo "LC_COLLATE=C" >>/etc/locale.conf
 locale-gen >/dev/null 2>&1
-
-# Configure systemd user settings to reduce stop and abort timeouts
-# This ensures quicker shutdown and abort times for systemd services
-[ "$(readlink -f /sbin/init)" = "/usr/lib/systemd/systemd" ] && {
-  mkdir -p /etc/systemd/user.conf.d
-  echo "[Manager]
-DefaultTimeoutStopSec=5s
-DefaultTimeoutAbortSec=5s" | tee /etc/systemd/user.conf.d/00-userd.conf >/dev/null 2>&1
-}
 
 # Welcome user and pick dotfiles
 welcomemsg || error "User exited."
@@ -226,7 +216,7 @@ preinstallmsg || error "User exited."
 refreshkeys ||
   error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
-for x in curl ca-certificates base-devel git mold ntp zsh dash; do
+for x in curl ca-certificates base-devel git mold ntp zsh; do
   whiptail --title "LARBS Installation" \
     --infobox "Installing \`$x\` which is required to install and configure other programs." 8 70
   installpkg "$x"
@@ -245,6 +235,59 @@ adduserandpass || error "Error adding username and/or password."
 trap 'rm -f /etc/sudoers.d/temp' HUP INT QUIT TERM PWR EXIT
 echo "%wheel ALL=(ALL) NOPASSWD: ALL
 Defaults:%wheel,root runcwd=*" >/etc/sudoers.d/temp
+
+# Detect NVIDIA GPU and configure modules and pacman hook
+if lspci | grep -i 'vga.*nvidia' >/dev/null; then
+  installpkg nvidia nvidia-utils nvidia-settings
+  nvidia_modules="nvidia nvidia_modeset nvidia_uvm nvidia_drm"
+  cp /etc/mkinitcpio.conf /etc/mkinitcpio.conf.bak
+  for module in $nvidia_modules; do
+    if ! grep -q "$module" /etc/mkinitcpio.conf; then
+      sed -i "/^MODULES=/ s/(\(.*\))/(\1 $module)/; s/MODULES=( \([^ ]\)/MODULES=(\1/" /etc/mkinitcpio.conf
+    fi
+  done
+
+  mkinitcpio -P >/dev/null 2>&1
+
+  mkdir -p /etc/pacman.d/hooks
+
+  case "$(uname -r)" in
+  *-zen*) current_kernel="linux-zen" ;;
+  *-lts*) current_kernel="linux-lts" ;;
+  *-hardened*) current_kernel="linux-hardened" ;;
+  *) current_kernel="linux" ;;
+  esac
+
+  cat <<EOF >/etc/pacman.d/hooks/nvidia.hook
+[Trigger]
+Operation=Install
+Operation=Upgrade
+Operation=Remove
+Type=Package
+# Uncomment the installed NVIDIA package
+Target=nvidia
+#Target=nvidia-open
+#Target=nvidia-lts
+# If running a different kernel, modify below to match
+Target=$current_kernel
+
+[Action]
+Description=Updating NVIDIA module in initcpio
+Depends=mkinitcpio
+When=PostTransaction
+NeedsTargets
+Exec=/bin/sh -c 'while read -r trg; do case \$trg in linux*) exit 0; esac; done; /usr/bin/mkinitcpio -P'
+EOF
+fi
+
+# Configure systemd user settings to reduce stop and abort timeouts
+# This ensures quicker shutdown and abort times for systemd services
+[ "$(readlink -f /sbin/init)" = "/usr/lib/systemd/systemd" ] && {
+  mkdir -p /etc/systemd/user.conf.d
+  echo "[Manager]
+DefaultTimeoutStopSec=5s
+DefaultTimeoutAbortSec=5s" | tee /etc/systemd/user.conf.d/00-userd.conf >/dev/null 2>&1
+}
 
 # Enable parallel downloads, uncomment VerbosePkgLists and Color, and add ILoveCandy for pacman
 sed -Ei "s/^#(ParallelDownloads).*/\1 = 5/;s/^#(VerbosePkgLists)$/\1/;/^#Color$/s/#//" /etc/pacman.conf
@@ -277,34 +320,23 @@ installationloop
 putgitrepo "$dotfilesrepo" "/home/$name" "$repobranch"
 rm -rf "/home/$name/.git/" "/home/$name/README.md"
 
-# Most important command! Get rid of the beep!
+# Disable PC speaker beep
 rmmod pcspkr
 echo "blacklist pcspkr" >/etc/modprobe.d/nobeep.conf
 
 # Make zsh the default shell for the user
 chsh -s /bin/zsh "$name" >/dev/null 2>&1
 sudo -u "$name" mkdir -p "/home/$name/.cache/zsh/"
-sudo -u "$name" mkdir -p "/home/$name/.config/mpd/playlists/"
 
-# Make dash the default #!/bin/sh symlink.
-ln -sfT /bin/dash /bin/sh >/dev/null 2>&1
-
-# dbus UUID must be generated for Artix runit
-dbus-uuidgen >/var/lib/dbus/machine-id
+# Generate dbus UUID for Artix runit
+if [ "$(readlink -f /sbin/init)" = "/usr/bin/runit-init" ]; then
+  dbus-uuidgen >/var/lib/dbus/machine-id
+fi
 
 # Use system notifications for Brave on Artix
-# Only do it when systemd is not present
-[ "$(readlink -f /sbin/init)" != "/usr/lib/systemd/systemd" ] && echo "export \$(dbus-launch)" >/etc/profile.d/dbus.sh
-
-# Enable tap to click
-[ ! -f /etc/X11/xorg.conf.d/40-libinput.conf ] && printf 'Section "InputClass"
-    Identifier "libinput touchpad catchall"
-    MatchIsTouchpad "on"
-    MatchDevicePath "/dev/input/event*"
-    Driver "libinput"
-    Option "Tapping" "on"
-    Option "NaturalScrolling" "true"
-EndSection' >/etc/X11/xorg.conf.d/40-libinput.conf
+if [ "$(readlink -f /sbin/init)" != "/usr/lib/systemd/systemd" ]; then
+  echo "export \$(dbus-launch)" >/etc/profile.d/dbus.sh
+fi
 
 # Allow wheel users to sudo with password and allow several system commands
 # (like `shutdown` to run without password)
@@ -313,9 +345,6 @@ echo '%wheel ALL=(ALL:ALL) ALL
 Defaults editor=/usr/bin/nvim' | tee /etc/sudoers.d/sudoersd >/dev/null
 mkdir -p /etc/sysctl.d
 echo "kernel.dmesg_restrict = 0" >/etc/sysctl.d/dmesg.conf
-
-# Zsh base dir
-echo 'ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"' >/etc/zsh/zshenv
 
 # Cleanup
 rm -f /etc/sudoers.d/temp
