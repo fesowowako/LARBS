@@ -216,15 +216,11 @@ preinstallmsg || error "User exited."
 refreshkeys ||
   error "Error automatically refreshing Arch keyring. Consider doing so manually."
 
-for x in curl ca-certificates base-devel git mold ntp zsh; do
+for x in curl base-devel git mold zsh; do
   whiptail --title "LARBS Installation" \
     --infobox "Installing \`$x\` which is required to install and configure other programs." 8 70
   installpkg "$x"
 done
-
-whiptail --title "LARBS Installation" \
-  --infobox "Synchronizing system time to ensure successful and secure installation of software..." 8 70
-ntpd -q -g >/dev/null 2>&1
 
 adduserandpass || error "Error adding username and/or password."
 
