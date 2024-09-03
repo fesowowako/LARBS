@@ -16,7 +16,6 @@
 ,xdg-desktop-portal-gtk,"A backend implementation for xdg-desktop-portal using GTK."
 ,xdg-desktop-portal-wlr,"xdg-desktop-portal backend for wlroots."
 A,hyprpicker,"A wlroots-compatible Wayland color picker."
-A,tofi,"Tiny rofi / dmenu replacement for wlroots-based Wayland compositors."
 ,j4-dmenu-desktop,"Find .desktop files and offer you a menu to start an application using dmenu."
 ,wl-clipboard,"Command-line copy/paste utilities for Wayland."
 ,bemenu-wayland,"Dynamic menu library and client program inspired by dmenu."
